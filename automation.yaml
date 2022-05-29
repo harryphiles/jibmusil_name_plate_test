@@ -1,0 +1,23 @@
+- alias: person state changes
+    trigger:
+    - platform: state
+      entity_id:
+        - input_select.person_1
+        - input_select.person_2
+        - input_select.person_3
+        - input_select.person_4
+        - input_select.person_5
+    action:
+      - choose:
+          - conditions: >
+              {{ trigger.to_state.state == 'In' or trigger.to_state.state == 'Out' }}
+            sequence:
+              - service: mqtt.publish
+                data_template:
+                  topic: "space1/{{ trigger.from_state.state }}"
+                  payload: Vacant # or Available
+        default:
+        - service: mqtt.publish
+          data_template:
+            topic: space1/{{ trigger.to_state.state }}
+            payload: "{{ trigger.from_state.name }}1
