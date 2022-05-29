@@ -59,3 +59,4 @@ display:
     full_update_every: 30
     lambda: |-
       it.print(0, 0, id(font1), "Hello World!");
+      it.printf(0, 0, id(font1), "The data is: %s", id(mysensor).state.c_str()); # test
