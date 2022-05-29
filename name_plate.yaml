@@ -26,6 +26,19 @@ wifi:
 
 captive_portal:
 
+# mqtt setup
+mqtt:
+  broker: 192.168.1.200
+  username: homeassistant
+  password: !secret mqtt_password
+
+# subscribe to topic published
+sensor:
+  - platform: mqtt_subscribe
+    name: "Data from topic"
+    id: mysensor # test
+    topic: the/topic # test
+
 # Example configuration entry
 font:
   - file: 'fonts/OpenSans-Regular.ttf'
