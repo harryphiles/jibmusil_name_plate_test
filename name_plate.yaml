@@ -1,9 +1,14 @@
 ### esp device
 esphome:
-  name: name-plate
+  name: name-plate-1
+  on_boot:
+    priority: -100
+    then:
+      - component.update: my_display
+      - display.page.show: page2
 
 esp8266:
-  board: nodemcuv2
+  board: d1_mini
 
 # Enable logging
 logger:
@@ -21,16 +26,21 @@ wifi:
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: "Name-Plate Fallback Hotspot"
+    ssid: "Name-Plate-1 Fallback Hotspot"
     password: !secret ap_password
 
 captive_portal:
 
 # mqtt setup
 mqtt:
-  broker: 192.168.1.200
-  username: homeassistant
+  broker: !secret mqtt_broker
+  username: !secret mqtt_username
   password: !secret mqtt_password
+  on_message:
+    topic: the/topic
+    then:
+      - component.update: my_display
+      - display.page.show: page1
 
 # subscribe to topic published
 sensor:
@@ -43,20 +53,43 @@ sensor:
 font:
   - file: 'fonts/OpenSans-Regular.ttf'
     id: font1
-    size: 8
+    size: 35
+  - file: 'fonts/OpenSans-Regular.ttf'
+    id: font2
+    size: 20
 
 spi:
-  clk_pin: D0 #CLK
-  mosi_pin: D1 #DIN
+  clk_pin: D0
+  mosi_pin: D1
 
 display:
   - platform: waveshare_epaper
-    cs_pin: D2
-    dc_pin: D6 #D3 #D6
-    busy_pin: D7 #D2 #D1
+    cs_pin: D2 #2
+    dc_pin: D6
+    busy_pin: D7 #7
     reset_pin: D5
-    model: 2.90in
-    full_update_every: 30
-    lambda: |-
-      it.print(0, 0, id(font1), "Hello World!");
-      it.printf(0, 0, id(font1), "The data is: %s", id(mysensor).state.c_str()); # test
+    model: 2.90inv2
+    full_update_every: 0
+    update_interval: never #30s #never #600s
+    rotation: 90
+    reset_duration: 1ms
+    id: my_display
+    pages:
+      - id: page1
+        lambda: |-
+          it.print(0, 0, id(font1), "Hello World! (page 1)");
+          it.printf(0, 50, id(font2), "The data is: %f", id(mysensor).state);
+      - id: page2
+        lambda: |-
+          it.print(0, 0, id(font1), "Hello World! (page 2)");
+
+# on_...:
+#   # - display.page.show: page1
+
+#   # Templated
+#   - display.page.show: !lambda |-
+#       if (id(mysensor).state) {
+#         return id(page1);
+#       } else {
+#         return id(page2);
+#       }
