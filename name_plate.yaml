@@ -3,7 +3,7 @@ esphome:
   # on_boot:
   #   priority: -100
   #   then:
-  #     # - display.page.show: page2
+  #     # - display.page.show: pageAvailable
   #     - component.update: my_display
 
 esp8266:
@@ -13,6 +13,8 @@ substitutions:
   identifier: 'Cave 1'
   space: 'space1'
   cave: 'cave1'
+  topic: ${space}/${cave}
+  id: ${space}_${cave}
   ko_glyphs: '!?"%()+=,-_.:°0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz가나다라마바사아자차카타파하집무실유재석강호동이경규성시안녕세상고싶은말용신엽능점검표중롸예약'
 
 # Enable logging
@@ -42,66 +44,66 @@ mqtt:
   username: !secret mqtt_username
   password: !secret mqtt_password
   on_message:
-    - topic: "${space}/${cave}"
+    - topic: ${topic}
       then:
         - delay: 0.1s
         # - component.update: my_display
-        # - display.page.show: page1
+        # - display.page.show: pageUser
         - if:
             condition:
-              lambda: 'return id(space1_cave1).state == "사용 가능";'
+              lambda: 'return id(${id}).state == "사용 가능";'
             then:
-              - display.page.show: page2
+              - display.page.show: pageAvailable
               - component.update: my_display
         - if:
             condition:
-              lambda: 'return id(space1_cave1).state.length() == 5;'
+              lambda: 'return id(${id}).state.length() == 5;'
             then:
-              - display.page.show: page5
+              - display.page.show: pageAvailableReservation
               - component.update: my_display
             else:
-              - display.page.show: page1
+              - display.page.show: pageUser
               - component.update: my_display
-    - topic: "${space}/${cave}/reservation"
+    - topic: ${space}/${cave}/reservation
       then:
         - delay: 0.1s
-        - display.page.show: page5
+        - display.page.show: pageAvailableReservation
         - component.update: my_display
-    - topic: "${space}/caveall"
+    - topic: ${space}/caveall
       then:
         - delay: 0.1s
         - if:
             condition:
               lambda: 'return id(${space}_caveall).state == "사용 가능";'
             then:
-              - display.page.show: page2
+              - display.page.show: pageAvailable
               - component.update: my_display
         - if:
             condition:
               lambda: 'return id(${space}_caveall).state == "점검중";'
             then:
-              - display.page.show: page4
+              - display.page.show: pageMaintenance
               - component.update: my_display
             else:
-              - display.page.show: page3
+              - display.page.show: pageAsis
               - component.update: my_display
 
 # subscribe to topic published
 text_sensor:
   - platform: mqtt_subscribe
     name: "${identifier}"
-    id: "${space}_${cave}"
-    topic: "${space}/${cave}"
+    id: ${id}
+    topic: ${topic}
   # - platform: mqtt_subscribe
   #   name: "${identifier} reservation"
   #   id: "${space}_${cave}_reservation"
   #   topic: "${space}/${cave}/reservation"
   - platform: mqtt_subscribe
     name: 'Cave all'
-    id: space1_caveall
-    topic: space1/caveall
+    id: ${space}_caveall
+    topic: ${space}/caveall
   - platform: homeassistant
-    id: "${space}_${cave}_time"
+    id: ${space}_${cave}_time
     entity_id: calendar.cave1_test
     attribute: start_time
 
@@ -134,9 +136,9 @@ spi:
 
 display:
   - platform: waveshare_epaper
-    cs_pin: D2 #2
+    cs_pin: D2
     dc_pin: D6
-    busy_pin: D7 #7
+    busy_pin: D7
     reset_pin: D5
     model: 2.90inv2
     full_update_every: 0
@@ -145,24 +147,24 @@ display:
     reset_duration: 1ms
     id: my_display
     pages:
-      - id: page1
+      - id: pageUser
         lambda: |-
-          it.print(0, 0, id(koNanum35), "집무실         $identifier");
+          it.print(0, 0, id(koNanum35), "집무실         ${identifier}");
           it.print(0, 50, id(koNanum20), "사용자: ");
-          it.printf(90, 50, id(koNanum60), "%s", id(space1_cave1).state.c_str());
-      - id: page2
+          it.printf(90, 50, id(koNanum60), "%s", id(${id}).state.c_str());
+      - id: pageAvailable
         lambda: |-
-          it.print(0, 0, id(koNanum35), "집무실         $identifier");
-          it.printf(27, 50, id(koNanum60), "%s", id(space1_cave1).state.c_str());
-      - id: page3
+          it.print(0, 0, id(koNanum35), "집무실         ${identifier}");
+          it.printf(27, 50, id(koNanum60), "%s", id(${id}).state.c_str());
+      - id: pageAsis
         lambda: |-
-          it.printf(0, 40, id(koNanum35), "%s", id(space1_caveall).state.c_str());
-      - id: page4
+          it.printf(0, 40, id(koNanum35), "%s", id(${space}_caveall).state.c_str());
+      - id: pageMaintenance
         lambda: |-
           it.image(0, 18, id(my_image));
-          it.printf(100, 40, id(koNanum35), "%s", id(space1_caveall).state.c_str());
-      - id: page5
+          it.printf(100, 40, id(koNanum35), "%s", id(${space}_caveall).state.c_str());
+      - id: pageAvailableReservation
         lambda: |-
-          it.print(0, 0, id(koNanum35), "집무실         $identifier");
+          it.print(0, 0, id(koNanum35), "집무실         ${identifier}");
           it.print(80, 50, id(koNanum35), "사용 가능");
-          it.printf(98, 100, id(koNanum20), "예약: %s", id(space1_cave1).state.c_str());
+          it.printf(98, 100, id(koNanum20), "예약: %s", id(${id}).state.c_str());
