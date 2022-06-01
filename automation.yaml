@@ -1,4 +1,4 @@
-- alias: person state changes
+  - alias: person state changes
     trigger:
     - platform: state
       entity_id:
@@ -10,14 +10,86 @@
     action:
       - choose:
           - conditions: >
+              {{ states('sensor.cave1_reservation') != 'False' and trigger.to_state.state == 'In' or trigger.to_state.state == 'Out' }}
+            sequence:
+              - service: mqtt.publish
+                data_template:
+                  topic: location1/cave1
+                  payload: "{{ states('sensor.cave1_reservation') }}"
+          - conditions: >
               {{ trigger.to_state.state == 'In' or trigger.to_state.state == 'Out' }}
             sequence:
               - service: mqtt.publish
                 data_template:
-                  topic: "space1/{{ trigger.from_state.state }}"
-                  payload: Vacant # or Available
+                  topic: "location1/{{ trigger.from_state.state }}"
+                  payload: "사용 가능"
         default:
         - service: mqtt.publish
           data_template:
-            topic: space1/{{ trigger.to_state.state }}
-            payload: "{{ trigger.from_state.name }}1
+            topic: location1/{{ trigger.to_state.state }}
+            payload: "{{ trigger.from_state.name }}"
+  - alias: caveall msg
+    trigger:
+    - platform: state
+      entity_id:
+        - sensor.mqtt_sensor_all
+    condition: >
+      {{ trigger.to_state.state != 'Unavailable' }}
+    action:
+    - service: mqtt.publish
+      data_template:
+        topic: location1/cave1
+        payload: "{{ trigger.to_state.state }}"
+    - service: mqtt.publish
+      data_template:
+        topic: location1/cave2
+        payload: "{{ trigger.to_state.state }}"
+    - service: mqtt.publish
+      data_template:
+        topic: location1/cave3
+        payload: "{{ trigger.to_state.state }}"
+    - service: mqtt.publish
+      data_template:
+        topic: location1/cave4
+        payload: "{{ trigger.to_state.state }}"
+  - alias: mqtt msg send
+    trigger:
+    - platform: state
+      entity_id: input_button.mqtt_send
+    action:
+    - service: mqtt.publish
+      data_template:
+        topic: "{{ states('input_text.mqtt_topic') }}"
+        payload: "{{ states('input_text.mqtt_payload') }}"
+  - alias: mqtt sensor 1 schedule
+    trigger:
+    - platform: state
+      entity_id: sensor.cave1_reservation
+    action:
+      - choose:
+          - conditions: >
+              {{ trigger.to_state.state == 'False' }}
+            sequence:
+              - service: mqtt.publish
+                data_template:
+                  topic: "location1/cave1"
+                  payload: "사용 가능"
+        default:
+        - service: mqtt.publish
+          data_template:
+            topic: location1/cave1
+            payload: "{{ trigger.to_state.state }}"
+  - alias: location1 cave1 presence
+    trigger:
+    - platform: state
+      entity_id: input_boolean.location1_cave1_presence
+    condition: "{{ states('sensor.mqtt_sensor_1') != '사용 가능' }}"
+    action:
+    - service: mqtt.publish
+      data_template:
+        topic: location1/cave1/presence
+        payload: >
+          {% if trigger.to_state.state == 'off'  %}
+            자리비움
+          {% else  %}
+          {% endif %}
